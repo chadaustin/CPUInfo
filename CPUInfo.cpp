@@ -446,7 +446,10 @@ static void classicalTimingLoop(u32 loopLength) {
 
 #ifdef __CYGWIN__
 #define __thread __declspec(thread)
+#elif defined(__APPLE__)
+#define __thread
 #endif
+
 
 typedef void (*SignalHandler)(int);
 
@@ -1142,6 +1145,34 @@ int getMultipleCPUInfo(CPUInfo* array) {
     }
     delete[] handles;
     return totalQueried;
+}
+
+#elif defined(__APPLE__)
+
+#include <sys/param.h>
+#include <sys/sysctl.h>
+
+// http://alienryderflex.com/processor_count.html
+int getCPUCount() {
+    int count;
+    size_t size = sizeof(count);
+    if (sysctlbyname("hw.ncpu", &count, &size, NULL, 0)) {
+	return 1;
+    }
+    return count;
+}
+
+int getMultipleCPUInfo(CPUInfo* array) {
+    int cpuCount = getCPUCount();
+    for (int i = 0; i < cpuCount; ++i) {
+        // Do we need to yield to make sure we're actually going to run on that
+        // processor?  Not according to the online docs...  affinity changes
+        // should happen immediately.
+        // sched_yield();
+
+        getCPUInfo(array[i]);
+    }
+    return cpuCount;
 }
 
 #else  // Linux
