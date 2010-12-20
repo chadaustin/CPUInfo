@@ -1,0 +1,1 @@
+cpuinfo > cpuinfo.output.txt
